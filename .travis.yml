@@ -1,6 +1,8 @@
 language: go
 go:
   - 1.6.2
+sudo: required
+dist: trusty
 before_install:
   - go get github.com/golang/lint/golint
 before_script:
@@ -10,4 +12,7 @@ script:
   - go build ./...
   - ./scripts/golint.sh
   - go vet ./...
-  - go test -v ./...
+  - sudo apt-get update
+  - sudo apt-get install -y libvirt0 libvirt-bin qemu
+  - sudo virsh version
+  - sudo go test -v -tags=integration ./...
