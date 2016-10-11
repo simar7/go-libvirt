@@ -54,9 +54,10 @@ type Libvirt struct {
 
 // Domain represents a domain as seen by libvirt.
 type Domain struct {
-	Name string
-	UUID [constants.UUIDSize]byte
-	ID   int
+	Name  string
+	State string
+	UUID  [constants.UUIDSize]byte
+	ID    int
 }
 
 // DomainEvent represents a libvirt domain event.
@@ -514,6 +515,41 @@ func (l *Libvirt) lookup(name string) (*Domain, error) {
 	}
 
 	return &d, nil
+}
+
+func (l *Libvirt) getDomainState(dom string) (state string, err error) {
+	payload := struct {
+		State string
+	}{state}
+
+	buf, err := encode(&payload)
+	if err != nil {
+		return "", err
+	}
+
+	d, err := l.lookup(dom)
+	if err != nil {
+		return "", err
+	}
+
+	resp, err := l.request(constants.ProcDomainGetState, constants.ProgramRemote, &buf)
+	if err != nil {
+		return "", err
+	}
+
+	r := <-resp
+	if r.Status != StatusOK {
+		return "", decodeError(r.Payload)
+	}
+
+	dec := xdr.NewDecoder(bytes.NewReader(r.Payload))
+
+	_, err = dec.Decode(&d)
+	if err != nil {
+		return "", err
+	}
+
+	return d.State, nil
 }
 
 // getQEMUError checks the provided response for QEMU process errors.
