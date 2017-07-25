@@ -36,16 +36,29 @@ const (
 // See:
 // https://libvirt.org/git/?p=libvirt.git;a=blob_plain;f=src/remote/remote_protocol.x;hb=HEAD
 const (
-	ProcConnectOpen              = 1
-	ProcConnectClose             = 2
-	ProcDomainLookupByName       = 23
-	ProcAuthList                 = 66
-	ProcConnectGetLibVersion     = 157
-	ProcDomainMigrateSetMaxSpeed = 207
-	ProcDomainUndefineFlags      = 231
-	ProcDomainDestroyFlags       = 234
-	ProcConnectListAllDomains    = 273
-	ProcMigratePerformParams     = 305
+	ProcConnectOpen                = 1
+	ProcConnectClose               = 2
+	ProcConnectGetCapabilties      = 7
+	ProcDomainGetXMLDesc           = 14
+	ProcDomainLookupByName         = 23
+	ProcDomainReboot               = 27
+	ProcAuthList                   = 66
+	ProcStoragePoolRefresh         = 83
+	ProcStoragePoolLookupByName    = 84
+	ProcConnectGetLibVersion       = 157
+	ProcDomainMemoryStats          = 159
+	ProcDomainCreateWithFlags      = 196
+	ProcDomainMigrateSetMaxSpeed   = 207
+	ProcDomainGetState             = 212
+	ProcDomainUndefineFlags        = 231
+	ProcDomainDestroyFlags         = 234
+	ProcDomainReset                = 245
+	ProcDomainShutdownFlags        = 258
+	ProcConnectListAllDomains      = 273
+	ProcConnectListAllStoragePools = 281
+	ProcConnectListAllSecrets      = 287
+	ProcMigratePerformParams       = 305
+	ProcDomainDefineXMLFlags       = 350
 )
 
 // qemu procedure identifiers

@@ -20,6 +20,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/digitalocean/go-libvirt/internal/constants"
 	"github.com/digitalocean/go-libvirt/libvirttest"
 )
 
@@ -117,6 +118,49 @@ func TestDomains(t *testing.T) {
 	}
 }
 
+func TestDomainState(t *testing.T) {
+	conn := libvirttest.New()
+	l := New(conn)
+
+	wantState := DomainState(DomainStateRunning)
+	gotState, err := l.DomainState("test")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if gotState != wantState {
+		t.Errorf("expected domain state %d, got %d", wantState, gotState)
+	}
+}
+
+func TestDomainMemoryStats(t *testing.T) {
+	conn := libvirttest.New()
+	l := New(conn)
+
+	wantDomainMemoryStats := []DomainMemoryStat{
+		DomainMemoryStat{
+			Tag: 6,
+			Val: 1048576,
+		},
+		DomainMemoryStat{
+			Tag: 7,
+			Val: 91272,
+		},
+	}
+
+	gotDomainMemoryStats, err := l.DomainMemoryStats("test")
+	if err != nil {
+		t.Error(err)
+	}
+
+	for i := range wantDomainMemoryStats {
+		if wantDomainMemoryStats[i] != gotDomainMemoryStats[i] {
+			t.Errorf("expected domain memory stat %v, got %v", wantDomainMemoryStats[i], gotDomainMemoryStats[i])
+		}
+	}
+
+}
+
 func TestEvents(t *testing.T) {
 	conn := libvirttest.New()
 	l := New(conn)
@@ -205,6 +249,110 @@ func TestRunFail(t *testing.T) {
 	}
 }
 
+func TestSecrets(t *testing.T) {
+	conn := libvirttest.New()
+	l := New(conn)
+
+	secrets, err := l.Secrets()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	wantLen := 1
+	gotLen := len(secrets)
+	if gotLen != wantLen {
+		t.Fatalf("expected %d secrets, got %d", wantLen, gotLen)
+	}
+
+	s := secrets[0]
+	wantType := SecretUsageTypeVolume
+	if s.UsageType != wantType {
+		t.Errorf("expected usage type %d, got %d", wantType, s.UsageType)
+	}
+
+	wantID := "/tmp"
+	if s.UsageID != wantID {
+		t.Errorf("expected usage id %q, got %q", wantID, s.UsageID)
+	}
+
+	// 19fdc2f2-fa64-46f3-bacf-42a8aafca6dd
+	wantUUID := [constants.UUIDSize]byte{
+		0x19, 0xfd, 0xc2, 0xf2, 0xfa, 0x64, 0x46, 0xf3,
+		0xba, 0xcf, 0x42, 0xa8, 0xaa, 0xfc, 0xa6, 0xdd,
+	}
+	if s.UUID != wantUUID {
+		t.Errorf("expected UUID %q, got %q", wantUUID, s.UUID)
+	}
+}
+
+func TestStoragePool(t *testing.T) {
+	conn := libvirttest.New()
+	l := New(conn)
+
+	wantName := "default"
+	pool, err := l.StoragePool(wantName)
+	if err != nil {
+		t.Error(err)
+	}
+
+	gotName := pool.Name
+	if gotName != wantName {
+		t.Errorf("expected name %q, got %q", wantName, gotName)
+	}
+
+	// bb30a11c-0846-4827-8bba-3e6b5cf1b65f
+	wantUUID := [constants.UUIDSize]byte{
+		0xbb, 0x30, 0xa1, 0x1c, 0x08, 0x46, 0x48, 0x27,
+		0x8b, 0xba, 0x3e, 0x6b, 0x5c, 0xf1, 0xb6, 0x5f,
+	}
+	gotUUID := pool.UUID
+	if gotUUID != wantUUID {
+		t.Errorf("expected UUID %q, got %q", wantUUID, gotUUID)
+	}
+}
+
+func TestStoragePools(t *testing.T) {
+	conn := libvirttest.New()
+	l := New(conn)
+
+	pools, err := l.StoragePools(StoragePoolsFlagActive)
+	if err != nil {
+		t.Error(err)
+	}
+
+	wantLen := 1
+	gotLen := len(pools)
+	if gotLen != wantLen {
+		t.Errorf("expected %d storage pool, got %d", wantLen, gotLen)
+	}
+
+	wantName := "default"
+	gotName := pools[0].Name
+	if gotName != wantName {
+		t.Errorf("expected name %q, got %q", wantName, gotName)
+	}
+
+	// bb30a11c-0846-4827-8bba-3e6b5cf1b65f
+	wantUUID := [constants.UUIDSize]byte{
+		0xbb, 0x30, 0xa1, 0x1c, 0x08, 0x46, 0x48, 0x27,
+		0x8b, 0xba, 0x3e, 0x6b, 0x5c, 0xf1, 0xb6, 0x5f,
+	}
+	gotUUID := pools[0].UUID
+	if gotUUID != wantUUID {
+		t.Errorf("expected UUID %q, got %q", wantUUID, gotUUID)
+	}
+}
+
+func TestStoragePoolRefresh(t *testing.T) {
+	conn := libvirttest.New()
+	l := New(conn)
+
+	err := l.StoragePoolRefresh("default")
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestUndefine(t *testing.T) {
 	conn := libvirttest.New()
 	l := New(conn)
@@ -237,5 +385,55 @@ func TestVersion(t *testing.T) {
 	expected := "1.3.4"
 	if version != expected {
 		t.Errorf("expected version %q, got %q", expected, version)
+	}
+}
+
+func TestDefineXML(t *testing.T) {
+	conn := libvirttest.New()
+	l := New(conn)
+
+	var flags DomainDefineXMLFlags
+	var buf []byte
+	if err := l.DefineXML(buf, flags); err != nil {
+		t.Fatalf("unexpected define error: %v", err)
+	}
+}
+
+func TestDomainCreateWithFlags(t *testing.T) {
+	conn := libvirttest.New()
+	l := New(conn)
+
+	var flags DomainCreateFlags
+	if err := l.DomainCreateWithFlags("test", flags); err != nil {
+		t.Fatalf("unexpected create error: %v", err)
+	}
+}
+
+func TestShutdown(t *testing.T) {
+	conn := libvirttest.New()
+	l := New(conn)
+
+	var flags ShutdownFlags
+	if err := l.Shutdown("test", flags); err != nil {
+		t.Fatalf("unexpected shutdown error: %v", err)
+	}
+}
+
+func TestReboot(t *testing.T) {
+	conn := libvirttest.New()
+	l := New(conn)
+
+	var flags RebootFlags
+	if err := l.Reboot("test", flags); err != nil {
+		t.Fatalf("unexpected reboot error: %v", err)
+	}
+}
+
+func TestReset(t *testing.T) {
+	conn := libvirttest.New()
+	l := New(conn)
+
+	if err := l.Reset("test"); err != nil {
+		t.Fatalf("unexpected reset error: %v", err)
 	}
 }
